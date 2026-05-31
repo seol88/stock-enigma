@@ -10,6 +10,7 @@ export const products = sqliteTable('products', {
   currentStock: integer('current_stock').notNull().default(0),
   minStock: integer('min_stock').notNull().default(5),
   status: text('status').notNull().default('active'),
+  imageUrl: text('image_url'),
 });
 
 // Better-Auth Tables

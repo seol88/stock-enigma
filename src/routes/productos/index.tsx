@@ -90,14 +90,13 @@ export default component$(() => {
               class={`btn btn-sm rounded-full border-none px-4 font-medium transition-colors ${activeCategory.value === cat ? 'bg-[#D946EF]/20 text-[#6B21A8]' : 'bg-white text-gray-600 hover:bg-gray-100 shadow-sm'}`}
               onClick$={() => activeCategory.value = cat}
             >
+              {cat === 'Todos' && (
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline-block align-middle" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+              )}
               {cat}
             </button>
           ))}
           <div class="w-px h-6 bg-gray-200 mx-1 hidden sm:block"></div>
-          <button class="btn btn-sm bg-white border border-gray-200 text-gray-700 rounded-full px-4 hover:bg-gray-50 shadow-sm">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-            Filtros
-          </button>
           <Link href="/productos/nuevo" class="hidden md:flex btn btn-sm bg-[#6B21A8] hover:bg-[#581C87] text-white rounded-full px-4 border-none shadow-sm">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
             Nuevo Producto

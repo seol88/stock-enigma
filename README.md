@@ -1,109 +1,88 @@
-# Qwik City App ⚡️
+# Stock Enigma ⚡️
 
-- [Qwik Docs](https://qwik.dev/)
-- [Discord](https://qwik.dev/chat)
-- [Qwik GitHub](https://github.com/QwikDev/qwik)
-- [@QwikDev](https://twitter.com/QwikDev)
-- [Vite](https://vitejs.dev/)
+**Stock Enigma** es un sistema de gestión integral de inventario y stock diseñado específicamente para las necesidades de una librería y regalería (*stationery store*). La plataforma provee una experiencia de usuario moderna y responsiva orientada a dispositivos móviles (diseño *app-like*) sin descuidar la productividad en pantallas de escritorio.
 
 ---
 
-## Project Structure
+## 🎯 Objetivo del Proyecto
 
-This project is using Qwik with [QwikCity](https://qwik.dev/qwikcity/overview/). QwikCity is just an extra set of tools on top of Qwik to make it easier to build a full site, including directory-based routing, layouts, and more.
+El objetivo principal es facilitar el control diario y en tiempo real de artículos del catálogo (tales como cuadernos, lapiceras, cartulinas, tazas personalizadas, etc.), permitiendo la optimización de compras y minimizando las roturas de stock mediante alertas automáticas y flujos de trabajo dedicados.
 
-Inside your project, you'll see the following directory structure:
+---
 
-```
-├── public/
-│   └── ...
-└── src/
-    ├── components/
-    │   └── ...
-    └── routes/
-        └── ...
-```
+## 🛠️ Tecnologías Utilizadas
 
-- `src/routes`: Provides the directory-based routing, which can include a hierarchy of `layout.tsx` layout files, and an `index.tsx` file as the page. Additionally, `index.ts` files are endpoints. Please see the [routing docs](https://qwik.dev/qwikcity/routing/overview/) for more info.
+El stack tecnológico de la aplicación está optimizado para proveer velocidad máxima y un despliegue sin servidores complejos:
 
-- `src/components`: Recommended directory for components.
+- **Frontend & Routing:** [Qwik](https://qwik.dev/) y [Qwik City](https://qwik.dev/qwikcity/overview/) para lograr una reanudación (*resumability*) instantánea en el cliente y navegación ultrarrápida.
+- **Base de Datos:** [Turso](https://turso.tech/) (SQLite en el Edge), brindando latencias mínimas a través de réplicas distribuidas.
+- **ORM:** [Drizzle ORM](https://orm.drizzle.team/) para un tipado estático robusto y consultas eficientes sobre SQLite.
+- **Autenticación:** [Better-Auth](https://www.better-auth.com/) para el control de acceso seguro basado en email/contraseña.
+- **Almacenamiento de Imágenes:** [Cloudinary](https://cloudinary.com/) para la subida, optimización y distribución eficiente de imágenes de los productos.
+- **Estilos:** [Tailwind CSS](https://tailwindcss.com/) y [DaisyUI](https://daisyui.com/) (diseño premium y adaptable a través de componentes consistentes en color marfil/hueso `#FDFBF7` y morados `#6B21A8`).
+- **Hosting:** [Vercel](https://vercel.com/) (Edge Functions).
 
-- `public`: Any static assets, like images, can be placed in the public directory. Please see the [Vite public directory](https://vitejs.dev/guide/assets.html#the-public-directory) for more info.
+---
 
-## Add Integrations and deployment
+## ✨ Características Principales
 
-Use the `npm run qwik add` command to add additional integrations. Some examples of integrations includes: Cloudflare, Netlify or Express Server, and the [Static Site Generator (SSG)](https://qwik.dev/qwikcity/guides/static-site-generation/).
+1. **Autenticación Segura (Login)**
+   - Formulario de login premium con visibilidad de contraseña e identidad persistente controlada por Better-Auth.
+2. **Dashboard de Métricas (KPIs)**
+   - Tarjetas informativas de Valor de Inventario, Productos Totales y Alertas Críticas calculadas en tiempo real.
+3. **Gestión de Catálogo (CRUD de Productos)**
+   - Listado interactivo con buscador y filtros dinámicos por categorías.
+   - Modificación rápida de stock mediante botones interactivos `+` y `-` conectados directamente con la base de datos Turso.
+   - Formulario de alta para nuevos productos con validación estricta a nivel de servidor.
+4. **Diseño "App-like" Multidispositivo**
+   - Menú lateral (Sidebar) fijo para pantallas de escritorio.
+   - Navegación inferior persistente (Dock/Bottom-nav) y barra superior optimizada con buscador para la experiencia en teléfonos móviles.
 
-```shell
-npm run qwik add # or `yarn qwik add`
-```
+---
 
-## Development
+## 💻 Configuración Local
 
-Development mode uses [Vite's development server](https://vitejs.dev/). The `dev` command will server-side render (SSR) the output during development.
+### Requisitos Previos
 
-```shell
-npm start # or `yarn start`
-```
+Asegúrate de contar con Node.js (versión `>=18.17.0`) instalado.
 
-> Note: during dev mode, Vite may request a significant number of `.js` files. This does not represent a Qwik production build.
+### Instalación
 
-## Preview
+1. Clona el repositorio:
+   ```bash
+   git clone https://github.com/seol88/stock-enigma.git
+   cd stock-enigma
+   ```
+2. Instala las dependencias:
+   ```bash
+   npm install
+   ```
+3. Configura el archivo `.env` en la raíz del proyecto basándote en las siguientes variables obligatorias:
+   - `TURSO_DATABASE_URL`
+   - `TURSO_AUTH_TOKEN`
+   - `BETTER_AUTH_SECRET`
+   - `BETTER_AUTH_URL`
+   - `CLOUDINARY_URL`
 
-The preview command will create a production build of the client modules, a production build of `src/entry.preview.tsx`, and run a local server. The preview server is only for convenience to preview a production build locally and should not be used as a production server.
+### Scripts Disponibles
 
-```shell
-npm run preview # or `yarn preview`
-```
-
-## Production
-
-The production build will generate client and server modules by running both client and server build commands. The build command will use Typescript to run a type check on the source code.
-
-```shell
-npm run build # or `yarn build`
-```
-
-## Vercel Edge
-
-This starter site is configured to deploy to [Vercel Edge Functions](https://vercel.com/docs/concepts/functions/edge-functions), which means it will be rendered at an edge location near to your users.
-
-## Installation
-
-The adaptor will add a new `vite.config.ts` within the `adapters/` directory, and a new entry file will be created, such as:
-
-```
-└── adapters/
-    └── vercel-edge/
-        └── vite.config.ts
-└── src/
-    └── entry.vercel-edge.tsx
-```
-
-Additionally, within the `package.json`, the `build.server` script will be updated with the Vercel Edge build.
-
-## Production build
-
-To build the application for production, use the `build` command, this command will automatically run `npm run build.server` and `npm run build.client`:
-
-```shell
-npm run build
-```
-
-[Read the full guide here](https://github.com/QwikDev/qwik/blob/main/starters/adapters/vercel-edge/README.md)
-
-## Dev deploy
-
-To deploy the application for development:
-
-```shell
-npm run deploy
-```
-
-Notice that you might need a [Vercel account](https://docs.Vercel.com/get-started/) in order to complete this step!
-
-## Production deploy
-
-The project is ready to be deployed to Vercel. However, you will need to create a git repository and push the code to it.
-
-You can [deploy your site to Vercel](https://vercel.com/docs/concepts/deployments/overview) either via a Git provider integration or through the Vercel CLI.
+- **Iniciar servidor de desarrollo:**
+  ```bash
+  npm run dev
+  ```
+- **Sincronizar base de datos con Turso (Push de esquemas):**
+  ```bash
+  npm run db:push
+  ```
+- **Abrir interfaz interactiva de base de datos (Drizzle Studio):**
+  ```bash
+  npm run db:studio
+  ```
+- **Ejecutar análisis de código (Linter):**
+  ```bash
+  npm run lint
+  ```
+- **Compilar para producción:**
+  ```bash
+  npm run build
+  ```

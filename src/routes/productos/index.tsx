@@ -2,6 +2,12 @@ import { component$, useSignal, useStore } from '@builder.io/qwik';
 import type { DocumentHead } from '@builder.io/qwik-city';
 import { Link } from '@builder.io/qwik-city';
 
+const updateStatus = (stock: number) => {
+  if (stock <= 0) return 'Sin Stock';
+  if (stock <= 15) return 'Bajo Stock';
+  return 'Disponible';
+};
+
 export default component$(() => {
   const searchQuery = useSignal('');
   const activeCategory = useSignal('Todos');
@@ -16,12 +22,6 @@ export default component$(() => {
       { code: 'EN-9022', name: 'Taza Personalizada', category: 'Regalería', price: 8200, stock: 45, status: 'Disponible' },
     ]
   }, { deep: true });
-
-  const updateStatus = (stock: number) => {
-    if (stock <= 0) return 'Sin Stock';
-    if (stock <= 15) return 'Bajo Stock';
-    return 'Disponible';
-  };
 
   return (
     <div class="space-y-6">

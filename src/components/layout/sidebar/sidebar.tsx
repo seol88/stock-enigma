@@ -17,8 +17,8 @@ export const Sidebar = component$(() => {
       {/* Menú Principal */}
       <div class="p-4 flex-1 flex flex-col">
         <div class="flex items-center gap-3 px-4 mb-8 mt-2">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#D946EF] to-[#9333EA] flex items-center justify-center shadow-md">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <div class="w-10 h-10 rounded-full overflow-hidden shadow-md border border-gray-100 flex-shrink-0 bg-white">
+            <img src="/logo.webp" alt="Logo" class="w-full h-full object-contain" />
           </div>
           <h1 class="text-[22px] font-extrabold text-[#6B21A8] tracking-tight">Librería Enigma</h1>
         </div>

@@ -22,8 +22,8 @@ export const Header = component$(() => {
       {/* Título en Desktop / Logo en Mobile */}
       <div class="flex items-center gap-3">
         {/* Logo solo en mobile */}
-        <div class="md:hidden w-8 h-8 rounded-full bg-gradient-to-tr from-[#D946EF] to-[#9333EA] flex items-center justify-center flex-shrink-0 shadow-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        <div class="md:hidden w-8 h-8 rounded-full overflow-hidden flex-shrink-0 shadow-sm border border-gray-100 bg-white">
+          <img src="/logo.webp" alt="Logo" class="w-full h-full object-contain" />
         </div>
         <h1 class="text-xl font-bold text-gray-800 hidden md:block whitespace-nowrap">{getPageTitle()}</h1>
       </div>

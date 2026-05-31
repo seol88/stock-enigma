@@ -38,10 +38,8 @@ export default component$(() => {
       <div class="w-full max-w-[400px]">
         {/* Logo Circular */}
         <div class="flex justify-center mb-6">
-          <div class="w-32 h-32 rounded-full bg-gradient-to-tr from-[#D946EF] to-[#9333EA] flex items-center justify-center shadow-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-white opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+          <div class="w-32 h-32 rounded-full overflow-hidden shadow-lg border-4 border-white bg-white">
+            <img src="/logo.webp" alt="Librería Enigma" class="w-full h-full object-contain" />
           </div>
         </div>
         

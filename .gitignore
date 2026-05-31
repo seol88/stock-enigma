@@ -43,6 +43,7 @@ lerna-debug.log*
 
 # Docs/Planning
 roadmap.md
+planes.md
 
 # Vercel
 .vercel

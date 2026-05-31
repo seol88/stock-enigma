@@ -54,5 +54,8 @@
     "better-auth": "^1.6.13",
     "cloudinary": "^2.10.0",
     "drizzle-orm": "^0.45.2"
+  },
+  "overrides": {
+    "kysely": "0.27.3"
   }
 }

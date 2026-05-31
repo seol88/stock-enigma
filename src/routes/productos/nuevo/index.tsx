@@ -1,14 +1,46 @@
-import { component$, useSignal } from '@builder.io/qwik';
+import { component$ } from '@builder.io/qwik';
 import type { DocumentHead } from '@builder.io/qwik-city';
-import { Link } from '@builder.io/qwik-city';
+import { Link, routeAction$, zod$, z, Form } from '@builder.io/qwik-city';
+import { getDb } from '../../../db';
+import { products } from '../../../db/schema';
+
+export const useCreateProductAction = routeAction$(async (data, event) => {
+  const db = getDb(event.env);
+  
+  // Generar ID único
+  const id = Math.random().toString(36).substring(2, 11);
+  
+  try {
+    await db.insert(products).values({
+      id,
+      code: data.code,
+      name: data.name,
+      category: data.category,
+      price: data.price,
+      currentStock: data.currentStock,
+      minStock: data.minStock,
+      status: 'active',
+      imageUrl: '/logo.webp', // Placeholder
+    }).run();
+  } catch (error: any) {
+    if (error.message && error.message.includes('UNIQUE constraint failed')) {
+      return { success: false, error: 'El código SKU ya existe en la base de datos.' };
+    }
+    return { success: false, error: 'Ocurrió un error al guardar el producto.' };
+  }
+  
+  throw event.redirect(303, '/productos/');
+}, zod$({
+  code: z.string().min(1, 'El código es obligatorio'),
+  name: z.string().min(1, 'El nombre es obligatorio'),
+  category: z.string(),
+  price: z.coerce.number().min(0, 'El precio debe ser mayor o igual a 0'),
+  currentStock: z.coerce.number().min(0, 'El stock inicial debe ser mayor o igual a 0'),
+  minStock: z.coerce.number().min(0, 'El stock mínimo debe ser mayor o igual a 0'),
+}));
 
 export default component$(() => {
-  const code = useSignal('');
-  const name = useSignal('');
-  const category = useSignal('Librería');
-  const price = useSignal('');
-  const stock = useSignal('');
-  const minStock = useSignal('5');
+  const createProductAction = useCreateProductAction();
 
   return (
     <div class="max-w-3xl mx-auto space-y-6">
@@ -21,7 +53,13 @@ export default component$(() => {
       </div>
 
       <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
-        <form class="space-y-6">
+        {createProductAction.value?.error && (
+          <div class="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 border border-red-200">
+            {createProductAction.value.error}
+          </div>
+        )}
+
+        <Form action={createProductAction} class="space-y-6">
           
           {/* Subida de Imagen (Placeholder) */}
           <div class="flex flex-col md:flex-row gap-6 items-center border-b border-gray-100 pb-8">
@@ -40,19 +78,19 @@ export default component$(() => {
             {/* Código */}
             <div class="form-control w-full">
               <label class="label"><span class="label-text font-bold text-gray-700">Código (SKU)</span></label>
-              <input type="text" placeholder="Ej. EN-1023" class="input bg-gray-50 border-gray-200 focus:border-[#6B21A8] focus:ring-1 focus:ring-[#6B21A8] rounded-xl" bind:value={code} />
+              <input type="text" name="code" placeholder="Ej. EN-1023" class="input bg-gray-50 border-gray-200 focus:border-[#6B21A8] focus:ring-1 focus:ring-[#6B21A8] rounded-xl text-gray-900" required />
             </div>
 
             {/* Nombre */}
             <div class="form-control w-full">
               <label class="label"><span class="label-text font-bold text-gray-700">Nombre del Producto</span></label>
-              <input type="text" placeholder="Ej. Cuaderno A4..." class="input bg-gray-50 border-gray-200 focus:border-[#6B21A8] focus:ring-1 focus:ring-[#6B21A8] rounded-xl" bind:value={name} />
+              <input type="text" name="name" placeholder="Ej. Cuaderno A4..." class="input bg-gray-50 border-gray-200 focus:border-[#6B21A8] focus:ring-1 focus:ring-[#6B21A8] rounded-xl text-gray-900" required />
             </div>
 
             {/* Categoría */}
             <div class="form-control w-full">
               <label class="label"><span class="label-text font-bold text-gray-700">Categoría</span></label>
-              <select class="select bg-gray-50 border-gray-200 focus:border-[#6B21A8] focus:ring-1 focus:ring-[#6B21A8] rounded-xl" bind:value={category}>
+              <select name="category" class="select bg-gray-50 border-gray-200 focus:border-[#6B21A8] focus:ring-1 focus:ring-[#6B21A8] rounded-xl text-gray-900">
                 <option value="Librería">Librería</option>
                 <option value="Regalería">Regalería</option>
                 <option value="Juguetería">Juguetería</option>
@@ -63,27 +101,29 @@ export default component$(() => {
             {/* Precio */}
             <div class="form-control w-full">
               <label class="label"><span class="label-text font-bold text-gray-700">Precio ($)</span></label>
-              <input type="number" placeholder="0.00" class="input bg-gray-50 border-gray-200 focus:border-[#6B21A8] focus:ring-1 focus:ring-[#6B21A8] rounded-xl" bind:value={price} />
+              <input type="number" step="0.01" name="price" placeholder="0.00" class="input bg-gray-50 border-gray-200 focus:border-[#6B21A8] focus:ring-1 focus:ring-[#6B21A8] rounded-xl text-gray-900" required />
             </div>
 
             {/* Stock Actual */}
             <div class="form-control w-full">
               <label class="label"><span class="label-text font-bold text-gray-700">Stock Inicial</span></label>
-              <input type="number" placeholder="0" class="input bg-gray-50 border-gray-200 focus:border-[#6B21A8] focus:ring-1 focus:ring-[#6B21A8] rounded-xl" bind:value={stock} />
+              <input type="number" name="currentStock" placeholder="0" class="input bg-gray-50 border-gray-200 focus:border-[#6B21A8] focus:ring-1 focus:ring-[#6B21A8] rounded-xl text-gray-900" required />
             </div>
 
             {/* Stock Mínimo */}
             <div class="form-control w-full">
               <label class="label"><span class="label-text font-bold text-gray-700">Alerta de Stock Mínimo</span></label>
-              <input type="number" placeholder="5" class="input bg-gray-50 border-gray-200 focus:border-[#6B21A8] focus:ring-1 focus:ring-[#6B21A8] rounded-xl" bind:value={minStock} />
+              <input type="number" name="minStock" placeholder="5" defaultValue="5" class="input bg-gray-50 border-gray-200 focus:border-[#6B21A8] focus:ring-1 focus:ring-[#6B21A8] rounded-xl text-gray-900" required />
             </div>
           </div>
 
           <div class="pt-6 border-t border-gray-100 flex justify-end gap-3">
             <Link href="/productos/" class="btn bg-gray-100 hover:bg-gray-200 text-gray-700 border-none rounded-xl px-6">Cancelar</Link>
-            <button type="button" class="btn bg-[#6B21A8] hover:bg-[#581C87] text-white border-none rounded-xl px-8 shadow-lg shadow-[#6B21A8]/30">Guardar Producto</button>
+            <button type="submit" class="btn bg-[#6B21A8] hover:bg-[#581C87] text-white border-none rounded-xl px-8 shadow-lg shadow-[#6B21A8]/30" disabled={createProductAction.isRunning}>
+              {createProductAction.isRunning ? 'Guardando...' : 'Guardar Producto'}
+            </button>
           </div>
-        </form>
+        </Form>
       </div>
     </div>
   );
@@ -91,5 +131,5 @@ export default component$(() => {
 
 export const head: DocumentHead = {
   title: 'Nuevo Producto - Librería Enigma',
-  meta: [{ name: 'description', content: 'Crear un nuevo producto' }],
+  meta: [{ name: 'description', content: 'Crear un nuevo producto en Turso' }],
 };

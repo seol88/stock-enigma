@@ -26,22 +26,23 @@ export default component$(() => {
           <input 
             type="text" 
             placeholder="Buscar por nombre o código..." 
-            class="input w-full pl-10 bg-gray-50 border-gray-200 focus:border-[#6B21A8] focus:ring-1 focus:ring-[#6B21A8] rounded-xl h-11 transition-all"
+            class="input w-full pl-10 bg-gray-50 border-gray-200 focus:border-[#6B21A8] focus:ring-1 focus:ring-[#6B21A8] rounded-xl h-11 transition-all text-gray-900"
             bind:value={searchQuery}
           />
         </div>
         
-        <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto overflow-x-auto pb-2 xl:pb-0 hide-scrollbar">
+        <div class="flex flex-nowrap items-center gap-2 w-full xl:w-auto overflow-x-auto pb-2 xl:pb-0 hide-scrollbar">
           {categories.map((cat) => (
             <button 
               key={cat}
-              class={`btn btn-sm rounded-full border-none px-4 font-medium transition-colors ${activeCategory.value === cat ? 'bg-[#D946EF]/20 text-[#6B21A8]' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
+              class={`btn btn-sm rounded-full border-none px-4 font-medium transition-colors flex-shrink-0 ${activeCategory.value === cat ? 'bg-[#D946EF]/20 text-[#6B21A8]' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
               onClick$={() => activeCategory.value = cat}
             >
               {cat}
             </button>
           ))}
-          <button class="btn btn-sm bg-white border border-gray-200 text-gray-700 rounded-full px-4 ml-auto xl:ml-2 hover:bg-gray-50">
+          <div class="w-px h-6 bg-gray-200 mx-1 hidden xl:block"></div>
+          <button class="btn btn-sm bg-white border border-gray-200 text-gray-700 rounded-full px-4 flex-shrink-0 hover:bg-gray-50">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
             Filtros
           </button>
@@ -67,7 +68,7 @@ export default component$(() => {
             {/* Cuerpo */}
             <tbody class="text-sm">
               {mockProducts.map((p) => (
-                <tr key={p.code} class="hover:bg-gray-50/50 transition-colors border-b border-gray-100 group">
+                <tr key={p.code} class="border-b border-gray-100 bg-transparent hover:bg-transparent">
                   <td class="pl-6 font-medium text-gray-900">{p.code}</td>
                   <td>
                     <div class="flex items-center gap-3">
@@ -86,7 +87,11 @@ export default component$(() => {
                     ${p.price.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                   </td>
                   <td class="text-center font-medium text-gray-700">
-                    {p.stock} u.
+                    <div class="flex items-center justify-center gap-2">
+                      <button class="btn btn-xs btn-circle btn-ghost text-red-500 hover:bg-red-50 text-lg leading-none pb-1">-</button>
+                      <span class="w-8 text-center">{p.stock}</span>
+                      <button class="btn btn-xs btn-circle btn-ghost text-green-600 hover:bg-green-50 text-lg leading-none pb-1">+</button>
+                    </div>
                   </td>
                   <td class="text-center">
                     <div class={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
@@ -103,11 +108,11 @@ export default component$(() => {
                     </div>
                   </td>
                   <td class="pr-6">
-                    <div class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button class="btn btn-ghost btn-sm btn-square text-gray-500 hover:text-[#6B21A8] hover:bg-[#6B21A8]/10">
+                    <div class="flex items-center justify-center gap-2">
+                      <button class="btn btn-ghost btn-sm btn-square text-gray-500 hover:text-[#6B21A8] hover:bg-[#6B21A8]/10 hover:scale-110 transition-transform">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                       </button>
-                      <button class="btn btn-ghost btn-sm btn-square text-gray-500 hover:text-red-600 hover:bg-red-50">
+                      <button class="btn btn-ghost btn-sm btn-square text-gray-500 hover:text-red-600 hover:bg-red-50 hover:scale-110 transition-transform">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>

@@ -12,6 +12,7 @@ export const products = sqliteTable('products', {
   status: text('status').notNull().default('active'),
   imageUrl: text('image_url'),
   deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  replenishmentStatus: text('replenishment_status').notNull().default('none'),
 });
 
 // Better-Auth Tables
@@ -64,4 +65,12 @@ export const verification = sqliteTable("verification", {
 export const categories = sqliteTable("categories", {
   id: text("id").primaryKey(),
   name: text("name").notNull().unique(),
+});
+
+export const replenishmentLogs = sqliteTable("replenishment_logs", {
+  id: text("id").primaryKey(),
+  productId: text("product_id").notNull().references(() => products.id),
+  productName: text("product_name").notNull(),
+  quantityAdded: integer("quantity_added").notNull(),
+  receivedAt: integer("received_at", { mode: "timestamp" }).notNull(),
 });

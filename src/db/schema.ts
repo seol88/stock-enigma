@@ -13,6 +13,7 @@ export const products = sqliteTable('products', {
   imageUrl: text('image_url'),
   deletedAt: integer('deleted_at', { mode: 'timestamp' }),
   replenishmentStatus: text('replenishment_status').notNull().default('none'),
+  requestedQuantity: integer('requested_quantity').notNull().default(0),
 });
 
 // Better-Auth Tables

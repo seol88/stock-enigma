@@ -34,43 +34,7 @@ export default component$(() => {
   return (
     <div class="max-w-3xl mx-auto space-y-6">
       
-      {/* Estilos CSS de impresión A4 profesionales */}
-      <style>{`
-        @media print {
-          /* Ocultar elementos estructurales de navegación y controles de pantalla */
-          aside, header, footer, nav, .btn, .no-print, .breadcrumbs, .btm-nav, btm-nav {
-            display: none !important;
-          }
-          /* Desestructurar flexbox y scroll del layout principal para que ocupe todo el ancho y sea continuo */
-          .flex, .h-screen, .flex-col, .flex-1, main {
-            display: block !important;
-            height: auto !important;
-            min-height: auto !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: visible !important;
-            background: white !important;
-            box-shadow: none !important;
-            border: none !important;
-          }
-          /* Contenedor del remito en modo impresión */
-          #print-remito-document {
-            display: block !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            padding: 15mm !important;
-            box-shadow: none !important;
-            border: none !important;
-            background: white !important;
-            color: black !important;
-          }
-        }
-        @page {
-          size: auto;
-          margin: 0mm;
-        }
-      `}</style>
+
 
       {/* Migas de pan y controles (no se imprimen) */}
       <div class="flex items-center justify-between no-print">

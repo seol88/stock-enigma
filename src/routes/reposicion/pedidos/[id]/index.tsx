@@ -34,6 +34,49 @@ export default component$(() => {
   return (
     <div class="max-w-3xl mx-auto space-y-6">
       
+      {/* Unscoped print style to guarantee hiding layout elements */}
+      <style dangerouslySetInnerHTML={`
+        @media print {
+          aside, header, footer, nav, .btn, .no-print, .breadcrumbs, .btm-nav, btm-nav, [class*="bottom-nav"], [class*="sidebar"] {
+            display: none !important;
+          }
+          html, body {
+            background: white !important;
+            color: black !important;
+            height: auto !important;
+            min-height: auto !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .flex, .h-screen, .flex-col, .flex-1, main {
+            display: block !important;
+            height: auto !important;
+            min-height: auto !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            background: white !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
+          #print-remito-document {
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 10mm !important;
+            box-shadow: none !important;
+            border: none !important;
+            background: white !important;
+            color: black !important;
+          }
+        }
+        @page {
+          size: A4;
+          margin: 15mm 10mm 15mm 10mm;
+        }
+      `} />
 
 
       {/* Migas de pan y controles (no se imprimen) */}

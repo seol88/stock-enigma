@@ -2,8 +2,8 @@ import { component$ } from '@builder.io/qwik';
 import type { DocumentHead } from '@builder.io/qwik-city';
 import { Link, routeLoader$ } from '@builder.io/qwik-city';
 import { getDb } from '../db';
-import { products } from '../db/schema';
-import { isNull } from 'drizzle-orm';
+import { products, replenishmentOrders, replenishmentLogs } from '../db/schema';
+import { isNull, desc } from 'drizzle-orm';
 
 export const useDashboardLoader = routeLoader$(async (event) => {
   const db = getDb(event.env);
@@ -16,14 +16,14 @@ export const useDashboardLoader = routeLoader$(async (event) => {
 
     const totalProducts = productsList.length;
     const totalStock = productsList.reduce((acc, p) => acc + p.currentStock, 0);
-    
-    // Low stock count
-    const lowStockCount = productsList.filter(p => p.currentStock <= p.minStock).length;
-
-    // Total valuation
     const totalValuation = productsList.reduce((acc, p) => acc + (p.price * p.currentStock), 0);
 
-    // Top 5 urgent alerts (items below minStock sorted by priority/ratio)
+    // Stock health distribution counts
+    const healthyCount = productsList.filter(p => p.currentStock > p.minStock).length;
+    const lowStockCount = productsList.filter(p => p.currentStock <= p.minStock && p.currentStock > 0).length;
+    const outOfStockCount = productsList.filter(p => p.currentStock === 0).length;
+
+    // Top 5 urgent alerts
     const criticalAlerts = productsList
       .filter(p => p.currentStock <= p.minStock)
       .map(p => ({
@@ -33,27 +33,83 @@ export const useDashboardLoader = routeLoader$(async (event) => {
       .sort((a, b) => a.ratio - b.ratio)
       .slice(0, 5);
 
+    // Fetch latest 5 replenishment orders & 5 receipt logs to merge into activity timeline
+    const recentOrders = await db.select()
+      .from(replenishmentOrders)
+      .orderBy(desc(replenishmentOrders.createdAt))
+      .limit(5)
+      .all();
+
+    const recentLogs = await db.select()
+      .from(replenishmentLogs)
+      .orderBy(desc(replenishmentLogs.receivedAt))
+      .limit(5)
+      .all();
+
+    const events: any[] = [];
+    
+    recentOrders.forEach(o => {
+      events.push({
+        id: `order-${o.id}`,
+        type: 'order',
+        time: o.createdAt,
+        text: `Remito ${o.number} generado`,
+        status: o.status
+      });
+    });
+
+    recentLogs.forEach(l => {
+      events.push({
+        id: `log-${l.id}`,
+        type: 'received',
+        time: l.receivedAt,
+        text: `Recibidas ${l.quantityAdded} u. de ${l.productName}`,
+        status: 'recibido'
+      });
+    });
+
+    const activityFeed = events
+      .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+      .slice(0, 5);
+
     return {
       totalProducts,
       totalStock,
-      lowStockCount,
       totalValuation,
-      criticalAlerts
+      healthyCount,
+      lowStockCount,
+      outOfStockCount,
+      criticalAlerts,
+      activityFeed
     };
   } catch (e) {
     console.error("Dashboard loader error:", e);
     return {
       totalProducts: 0,
       totalStock: 0,
-      lowStockCount: 0,
       totalValuation: 0,
-      criticalAlerts: []
+      healthyCount: 0,
+      lowStockCount: 0,
+      outOfStockCount: 0,
+      criticalAlerts: [],
+      activityFeed: []
     };
   }
 });
 
 export default component$(() => {
   const metrics = useDashboardLoader();
+
+  // Donut chart calculations
+  const total = metrics.value.totalProducts || 1;
+  const healthyPct = Math.round((metrics.value.healthyCount / total) * 100);
+  const lowPct = Math.round((metrics.value.lowStockCount / total) * 100);
+  const outPct = Math.round((metrics.value.outOfStockCount / total) * 100);
+
+  // SVG dash offsets for stacked circle segments
+  const offsetHealthy = 0;
+  const offsetLow = 100 - healthyPct;
+  const offsetOut = 100 - healthyPct - lowPct;
 
   return (
     <div class="space-y-8 p-4 md:p-6">
@@ -83,7 +139,7 @@ export default component$(() => {
         <div class="bg-red-50/50 border border-red-100 rounded-3xl p-6 flex items-center justify-between shadow-sm">
           <div class="space-y-2">
             <span class="text-xs font-bold text-red-500 uppercase tracking-wider">Artículos con Bajo Stock</span>
-            <h3 class="text-3xl font-black text-red-950">{metrics.value.lowStockCount}</h3>
+            <h3 class="text-3xl font-black text-red-950">{metrics.value.lowStockCount + metrics.value.outOfStockCount}</h3>
             <p class="text-xs text-red-700/80 font-medium">Artículos que necesitan reponerse de inmediato.</p>
           </div>
           <div class="p-3 bg-white border border-red-100 rounded-2xl text-red-600 shadow-sm animate-pulse">
@@ -107,11 +163,135 @@ export default component$(() => {
 
       </div>
 
+      {/* Gráfico y Bitácora */}
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Gráfico de Salud del Inventario */}
+        <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm lg:col-span-1 flex flex-col justify-between space-y-6">
+          <div>
+            <h3 class="font-black text-gray-800 text-base">Salud de Inventario</h3>
+            <p class="text-xs text-gray-400 mt-0.5">Distribución porcentual de los niveles de stock.</p>
+          </div>
+          
+          <div class="relative flex justify-center items-center my-2">
+            {/* SVG Donut Chart */}
+            <svg viewBox="0 0 42 42" class="w-44 h-44 transform -rotate-90">
+              <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#F3F4F6" stroke-width="5"></circle>
+              
+              {/* Segmento Saludable (Verde Pastel) */}
+              {healthyPct > 0 && (
+                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#A7F3D0" stroke-width="5"
+                  stroke-dasharray={`${healthyPct} ${100 - healthyPct}`} stroke-dashoffset={offsetHealthy}></circle>
+              )}
+              
+              {/* Segmento Bajo Stock (Amarillo Pastel) */}
+              {lowPct > 0 && (
+                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#FDE68A" stroke-width="5"
+                  stroke-dasharray={`${lowPct} ${100 - lowPct}`} stroke-dashoffset={offsetLow}></circle>
+              )}
+
+              {/* Segmento Sin Stock (Rojo Pastel) */}
+              {outPct > 0 && (
+                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#FCA5A5" stroke-width="5"
+                  stroke-dasharray={`${outPct} ${100 - outPct}`} stroke-dashoffset={offsetOut}></circle>
+              )}
+            </svg>
+            
+            {/* Centro del Donut */}
+            <div class="absolute text-center space-y-0.5">
+              <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">Total</span>
+              <p class="text-2xl font-black text-gray-800">{metrics.value.totalProducts}</p>
+              <span class="text-[10px] text-gray-500 font-semibold">Artículos</span>
+            </div>
+          </div>
+
+          {/* Leyendas con Colores Pasteles */}
+          <div class="space-y-2 pt-2 border-t border-gray-100">
+            <div class="flex justify-between items-center text-xs">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-[#A7F3D0]"></span>
+                <span class="text-gray-600 font-medium">Disponible</span>
+              </div>
+              <span class="font-extrabold text-gray-800">{metrics.value.healthyCount} u. ({healthyPct}%)</span>
+            </div>
+            <div class="flex justify-between items-center text-xs">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-[#FDE68A]"></span>
+                <span class="text-gray-600 font-medium">Bajo Stock</span>
+              </div>
+              <span class="font-extrabold text-gray-800">{metrics.value.lowStockCount} u. ({lowPct}%)</span>
+            </div>
+            <div class="flex justify-between items-center text-xs">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-[#FCA5A5]"></span>
+                <span class="text-gray-600 font-medium">Agotado</span>
+              </div>
+              <span class="font-extrabold text-gray-800">{metrics.value.outOfStockCount} u. ({outPct}%)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Bitácora de Actividad Reciente */}
+        <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm lg:col-span-2 flex flex-col justify-between space-y-6">
+          <div>
+            <h3 class="font-black text-gray-800 text-base">Bitácora de Actividad Reciente</h3>
+            <p class="text-xs text-gray-400 mt-0.5">Historial cronológico de compras y abastecimiento de productos.</p>
+          </div>
+
+          <div class="flex-1 space-y-4">
+            {metrics.value.activityFeed.length === 0 ? (
+              <div class="h-full flex flex-col items-center justify-center py-12 text-center space-y-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <p class="text-xs text-gray-400 font-medium">No se registran actividades recientes en el sistema.</p>
+              </div>
+            ) : (
+              <div class="relative border-l border-gray-100 pl-4 ml-2 space-y-5 py-1">
+                {metrics.value.activityFeed.map((evt) => (
+                  <div key={evt.id} class="relative text-xs">
+                    {/* Indicador de la línea de tiempo */}
+                    <span class={`absolute -left-[22px] top-1 w-3 h-3 rounded-full border-2 border-white ${
+                      evt.type === 'order' 
+                        ? 'bg-purple-400' 
+                        : 'bg-emerald-400'
+                    }`}></span>
+                    <div class="flex justify-between items-start gap-4">
+                      <div>
+                        <p class="font-bold text-gray-800">{evt.text}</p>
+                        <span class="text-[10px] text-gray-400">
+                          {new Date(evt.time).toLocaleDateString('es-AR', {
+                            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                      <span class={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                        evt.status === 'recibido' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                        evt.status === 'en_curso' ? 'bg-purple-50 text-purple-700 border border-purple-100' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {evt.status === 'en_curso' ? 'En curso' : 
+                         evt.status === 'recibido' ? 'Recibido' : 'Cancelado'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <div class="pt-4 border-t border-gray-100 text-center">
+            <Link href="/reposicion/pedidos/" class="text-xs text-[#6B21A8] font-bold hover:underline">
+              Ver todos los remitos emitidos →
+            </Link>
+          </div>
+        </div>
+
+      </div>
+
       {/* Widget de Alertas Críticas (Top 5 Productos más urgentes) */}
       <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
         <div class="flex items-center justify-between">
           <div>
-            <h3 class="font-black text-gray-800 text-lg">Alertas de Reposición Urgentes</h3>
+            <h3 class="font-black text-gray-800 text-base">Alertas de Reposición Urgentes</h3>
             <p class="text-xs text-gray-400 mt-0.5">Los 5 productos que están más cerca de agotarse o tienen menor porcentaje de stock mínimo.</p>
           </div>
           <Link 

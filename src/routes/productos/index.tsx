@@ -3,19 +3,21 @@ import type { DocumentHead } from '@builder.io/qwik-city';
 import { Link, routeLoader$, routeAction$, zod$, z } from '@builder.io/qwik-city';
 import { getDb } from '../../db';
 import { products } from '../../db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, isNull } from 'drizzle-orm';
 
-const updateStatus = (stock: number) => {
+const updateStatus = (stock: number, minStock: number) => {
   if (stock <= 0) return 'Sin Stock';
-  if (stock <= 15) return 'Bajo Stock';
+  if (stock <= minStock) return 'Bajo Stock';
   return 'Disponible';
 };
 
 export const useProductsLoader = routeLoader$(async (event) => {
   const db = getDb(event.env);
-  let dbProducts = await db.select().from(products).all();
+  
+  // Consultar todos los productos en general para determinar si hay que hacer seed
+  const countAll = await db.select().from(products).all();
 
-  if (dbProducts.length === 0) {
+  if (countAll.length === 0) {
     const seedData = [
       { id: '1', code: 'EN-7821', name: 'Cuaderno Universitario', category: 'Librería', price: 4500, currentStock: 124, minStock: 15, status: 'active', imageUrl: '/logo.webp' },
       { id: '2', code: 'EN-4492', name: 'Lapicera Gel Violeta', category: 'Librería', price: 850, currentStock: 12, minStock: 15, status: 'active', imageUrl: '/logo.webp' },
@@ -25,10 +27,10 @@ export const useProductsLoader = routeLoader$(async (event) => {
     for (const item of seedData) {
       await db.insert(products).values(item).run();
     }
-    dbProducts = await db.select().from(products).all();
   }
 
-  return dbProducts;
+  // Traer solo los productos que no han sido borrados lógicamente
+  return await db.select().from(products).where(isNull(products.deletedAt)).all();
 });
 
 export const useUpdateStockAction = routeAction$(async (data, event) => {
@@ -46,11 +48,26 @@ export const useUpdateStockAction = routeAction$(async (data, event) => {
   newStock: z.number(),
 }));
 
+export const useDeleteProductAction = routeAction$(async (data, event) => {
+  const db = getDb(event.env);
+  const { productId } = data;
+
+  await db.update(products)
+    .set({ deletedAt: new Date() })
+    .where(eq(products.id, productId))
+    .run();
+
+  return { success: true };
+}, zod$({
+  productId: z.string(),
+}));
+
 export default component$(() => {
   const searchQuery = useSignal('');
   const activeCategory = useSignal('Todos');
   const productsLoader = useProductsLoader();
   const updateStockAction = useUpdateStockAction();
+  const deleteProductAction = useDeleteProductAction();
 
   const categories = ['Todos', 'Librería', 'Regalería', 'Juguetería', 'Arte'];
 
@@ -62,9 +79,9 @@ export default component$(() => {
     return matchesSearch && matchesCategory;
   });
 
-  // KPIs dinámicos
+  // KPIs dinámicos utilizando minStock individual del producto
   const totalProducts = productsLoader.value.length;
-  const lowStockProducts = productsLoader.value.filter(p => p.currentStock <= 15).length;
+  const lowStockProducts = productsLoader.value.filter(p => p.currentStock <= p.minStock).length;
   const totalValue = productsLoader.value.reduce((acc, p) => acc + (p.price * p.currentStock), 0);
 
   return (
@@ -123,7 +140,7 @@ export default component$(() => {
             {/* Cuerpo */}
             <tbody class="text-sm">
               {filteredProducts.map((p) => {
-                const displayStatus = updateStatus(p.currentStock);
+                const displayStatus = updateStatus(p.currentStock, p.minStock);
                 return (
                   <tr key={p.code} class="border-b border-gray-100 bg-transparent hover:bg-transparent">
                     <td class="pl-6 font-medium text-gray-900 bg-transparent">{p.code}</td>
@@ -178,10 +195,21 @@ export default component$(() => {
                     </td>
                     <td class="pr-6 bg-transparent">
                       <div class="flex items-center justify-center gap-2">
-                        <button class="btn btn-ghost btn-sm btn-square text-gray-500 hover:text-[#6B21A8] hover:bg-[#6B21A8]/10 hover:scale-110 transition-transform" onClick$={() => alert('Próximamente: Editar producto')}>
+                        <Link 
+                          href={`/productos/editar/${p.id}`}
+                          class="btn btn-ghost btn-sm btn-square text-gray-500 hover:text-[#6B21A8] hover:bg-[#6B21A8]/10 hover:scale-110 transition-transform flex items-center justify-center"
+                        >
                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                        </button>
-                        <button class="btn btn-ghost btn-sm btn-square text-gray-500 hover:text-red-600 hover:bg-red-50 hover:scale-110 transition-transform" onClick$={() => alert('Próximamente: Eliminar producto')}>
+                        </Link>
+                        <button 
+                          class="btn btn-ghost btn-sm btn-square text-gray-500 hover:text-red-600 hover:bg-red-50 hover:scale-110 transition-transform" 
+                          onClick$={async () => {
+                            if (confirm(`¿Estás seguro de que deseas eliminar ${p.name}?`)) {
+                              await deleteProductAction.submit({ productId: p.id });
+                            }
+                          }}
+                          disabled={deleteProductAction.isRunning}
+                        >
                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                       </div>
@@ -225,7 +253,7 @@ export default component$(() => {
             </div>
           </div>
           <h3 class="text-3xl font-extrabold text-gray-900 mb-1">{lowStockProducts}</h3>
-          <p class="text-gray-600 text-sm font-medium">Bajo Stock / Crítico (≤ 15)</p>
+          <p class="text-gray-600 text-sm font-medium">Bajo Stock / Crítico (≤ Min)</p>
         </div>
 
         <div class="bg-[#E9D5FF] rounded-2xl p-6 shadow-sm relative overflow-hidden">

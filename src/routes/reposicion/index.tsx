@@ -1,8 +1,8 @@
 import { component$, useStore, useSignal, $ } from '@builder.io/qwik';
 import type { DocumentHead } from '@builder.io/qwik-city';
-import { routeLoader$, routeAction$, zod$, z } from '@builder.io/qwik-city';
+import { Link, routeLoader$, routeAction$, zod$, z } from '@builder.io/qwik-city';
 import { getDb } from '../../db';
-import { products, replenishmentLogs } from '../../db/schema';
+import { products, replenishmentLogs, replenishmentOrders, replenishmentOrderItems } from '../../db/schema';
 import { eq, isNull, and, lte, desc } from 'drizzle-orm';
 
 // Carga de productos críticos e historial de logs
@@ -30,12 +30,37 @@ export const useReplenishmentLoader = routeLoader$(async (event) => {
   return { criticalProducts, logs };
 });
 
-// Acción para generar lote de pedidos (Remito)
+// Acción para generar remito persistente en BD
 export const useCreateOrderAction = routeAction$(async (data, event) => {
   const db = getDb(event.env);
   const { items } = data; // Array de { productId, quantity }
 
+  const orderId = Math.random().toString(36).substring(2, 11);
+  const timestamp = Date.now();
+  const orderNumber = `REM-${timestamp.toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000)}`;
+
+  // 1. Crear Cabecera del Remito
+  await db.insert(replenishmentOrders).values({
+    id: orderId,
+    number: orderNumber,
+    createdAt: new Date(),
+    status: 'en_curso',
+  }).run();
+
+  // 2. Crear Detalles y actualizar productos
   for (const item of items) {
+    const product = await db.select().from(products).where(eq(products.id, item.productId)).get();
+    const productName = product ? product.name : 'Producto Desconocido';
+    const itemId = Math.random().toString(36).substring(2, 11);
+
+    await db.insert(replenishmentOrderItems).values({
+      id: itemId,
+      orderId,
+      productId: item.productId,
+      productName,
+      quantity: item.quantity,
+    }).run();
+
     await db.update(products)
       .set({
         replenishmentStatus: 'pedido_en_curso',
@@ -45,7 +70,8 @@ export const useCreateOrderAction = routeAction$(async (data, event) => {
       .run();
   }
 
-  return { success: true };
+  // Redirigir al visor del remito recién creado
+  throw event.redirect(303, `/reposicion/pedidos/${orderId}/`);
 }, zod$({
   items: z.array(z.object({
     productId: z.string(),
@@ -68,7 +94,7 @@ export const useReceiveReplenishmentAction = routeAction$(async (data, event) =>
     .set({
       currentStock: newStock,
       replenishmentStatus: 'none',
-      requestedQuantity: 0, // Reset
+      requestedQuantity: 0,
     })
     .where(eq(products.id, productId))
     .run();
@@ -113,7 +139,6 @@ export default component$(() => {
   const cancelOrderAction = useCancelOrderAction();
 
   // Estado del Carrito local (productos marcados para pedir)
-  // Almacenamos mapeado: [productId]: { selected: boolean, quantity: number }
   const orderCart = useStore<Record<string, { selected: boolean, quantity: number }>>({});
 
   // ID del producto seleccionado para recibir stock
@@ -127,7 +152,6 @@ export default component$(() => {
   // Inicializar carrito localmente si el producto no está registrado en el store
   criticalProducts.forEach((p) => {
     if (orderCart[p.id] === undefined) {
-      // Sugerir cantidad por defecto: la diferencia para llegar al stock mínimo más un margen, o al menos 10 unidades
       const suggestedQty = Math.max(p.minStock - p.currentStock, 10);
       orderCart[p.id] = { selected: false, quantity: suggestedQty };
     }
@@ -138,8 +162,7 @@ export default component$(() => {
   const countSelected = Object.values(orderCart).filter(item => item.selected).length;
   const countOrdered = criticalProducts.filter(p => p.replenishmentStatus === 'pedido_en_curso').length;
 
-  // Imprimir remito de forma reactiva
-  const handlePrintRemito = $(async () => {
+  const handleGenerateRemito = $(async () => {
     const selectedItems = Object.entries(orderCart)
       .filter(([, val]) => val.selected)
       .map(([id, val]) => ({ productId: id, quantity: val.quantity }));
@@ -149,93 +172,20 @@ export default component$(() => {
       return;
     }
 
-    // 1. Guardar estado en BD
     await createOrderAction.submit({ items: selectedItems });
-
-    // 2. Ejecutar la impresión física tras registrar en el servidor
-    setTimeout(() => {
-      window.print();
-      // Desmarcar elementos
-      Object.keys(orderCart).forEach(id => {
-        orderCart[id].selected = false;
-      });
-    }, 300);
   });
 
   return (
     <div class="space-y-6">
       
-      {/* Estilos CSS especiales para impresión física limpia */}
-      <style>{`
-        @media print {
-          header, sidebar, nav, .btn, .kpi-container, .log-container, .no-print {
-            display: none !important;
-          }
-          body, main, #print-section {
-            background: white !important;
-            color: black !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          #print-section {
-            display: block !important;
-          }
-        }
-      `}</style>
-
-      {/* Membrete / Remito Imprimible Oculto en Pantalla */}
-      <div id="print-section" class="hidden print:block p-8 bg-white text-black space-y-6">
-        <div class="flex justify-between items-start border-b pb-4">
-          <div>
-            <h1 class="text-2xl font-black uppercase tracking-wide">Librería Enigma</h1>
-            <p class="text-xs text-gray-500">Sistema de Gestión de Stock e Inventario</p>
-          </div>
-          <div class="text-right">
-            <h2 class="text-lg font-bold uppercase text-gray-700">Remito de Reposición</h2>
-            <p class="text-xs text-gray-500">Fecha: {new Date().toLocaleDateString('es-AR')}</p>
-          </div>
-        </div>
-
-        <div class="space-y-2">
-          <p class="text-sm font-semibold">Detalle de mercadería solicitada al proveedor:</p>
-          <table class="w-full border-collapse border border-gray-300 text-sm">
-            <thead>
-              <tr class="bg-gray-100">
-                <th class="border border-gray-300 p-2 text-left">SKU Código</th>
-                <th class="border border-gray-300 p-2 text-left">Producto</th>
-                <th class="border border-gray-300 p-2 text-center">Cant. Solicitada</th>
-              </tr>
-            </thead>
-            <tbody>
-              {criticalProducts.map((p) => {
-                if (!orderCart[p.id]?.selected) return null;
-                return (
-                  <tr key={p.code}>
-                    <td class="border border-gray-300 p-2 font-mono">{p.code}</td>
-                    <td class="border border-gray-300 p-2 font-bold">{p.name}</td>
-                    <td class="border border-gray-300 p-2 text-center font-extrabold">{orderCart[p.id].quantity} u.</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        <div class="pt-16 flex justify-between text-xs text-gray-400">
-          <div class="border-t border-gray-300 pt-2 w-48 text-center">Firma Responsable</div>
-          <div class="border-t border-gray-300 pt-2 w-48 text-center">Firma Proveedor</div>
-        </div>
-      </div>
-
       {/* Contenido en Pantalla */}
-      <div class="space-y-6 no-print">
+      <div class="space-y-6">
         
         {/* KPIs de Reposición */}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 kpi-container">
-          <div class="bg-gradient-to-br from-red-500 to-red-700 rounded-2xl p-6 text-white shadow-lg shadow-red-500/20 relative overflow-hidden">
-            <div class="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-[#FEF2F2] border border-red-200 rounded-2xl p-6 text-red-700 relative overflow-hidden group">
             <h3 class="text-3xl font-extrabold mb-1 relative z-10">{totalCritical}</h3>
-            <p class="text-white/80 text-sm font-medium relative z-10">Artículos Críticos / Bajo Stock</p>
+            <p class="text-red-600/80 text-sm font-medium relative z-10">Artículos Críticos / Bajo Stock</p>
           </div>
 
           <div class="bg-[#FDFBF7] rounded-2xl p-6 shadow-sm border border-gray-200 relative overflow-hidden group hover:border-[#6B21A8]/30 transition-colors">
@@ -304,17 +254,24 @@ export default component$(() => {
           <div class="p-6 border-b border-gray-100 flex flex-col sm:flex-row gap-4 items-center justify-between">
             <div>
               <h3 class="text-lg font-bold text-gray-800">Flujo de Reposición</h3>
-              <p class="text-xs text-gray-500 mt-0.5">Selecciona los productos y define las cantidades para imprimir el remito.</p>
+              <p class="text-xs text-gray-500 mt-0.5">Selecciona los productos y define las cantidades para generar el remito.</p>
             </div>
             
-            <button 
-              class="btn btn-sm bg-[#6B21A8] hover:bg-[#581C87] text-white border-none rounded-xl px-5 py-2 shadow-md shadow-[#6B21A8]/20"
-              onClick$={handlePrintRemito}
-              disabled={countSelected === 0 || createOrderAction.isRunning}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-              Generar Pedido / Imprimir Remito
-            </button>
+            <div class="flex gap-2">
+              <Link 
+                href="/reposicion/pedidos/" 
+                class="btn btn-sm bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl px-4"
+              >
+                Historial de Remitos
+              </Link>
+              <button 
+                class="btn btn-sm bg-[#6B21A8] hover:bg-[#581C87] text-white border-none rounded-xl px-5 py-2 shadow-md shadow-[#6B21A8]/20"
+                onClick$={handleGenerateRemito}
+                disabled={countSelected === 0 || createOrderAction.isRunning}
+              >
+                {createOrderAction.isRunning ? 'Generando...' : 'Generar Remito de Compra'}
+              </button>
+            </div>
           </div>
           
           <div class="overflow-x-auto">
@@ -393,7 +350,7 @@ export default component$(() => {
                                 onClick$={() => {
                                   activeProductId.value = p.id;
                                   activeProductName.value = p.name;
-                                  receiveQuantity.value = p.requestedQuantity.toString(); // Sugerir cantidad solicitada
+                                  receiveQuantity.value = p.requestedQuantity.toString();
                                 }}
                               >
                                 Recibir
@@ -424,7 +381,7 @@ export default component$(() => {
         </div>
 
         {/* Historial de Recepción de Stock */}
-        <div class="bg-[#FDFBF7] rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4 log-container">
+        <div class="bg-[#FDFBF7] rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
           <h3 class="text-lg font-bold text-gray-800">Historial de Recepciones (Últimas 5)</h3>
           <div class="overflow-x-auto">
             {logs.length === 0 ? (

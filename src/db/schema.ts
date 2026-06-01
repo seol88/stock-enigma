@@ -75,3 +75,18 @@ export const replenishmentLogs = sqliteTable("replenishment_logs", {
   quantityAdded: integer("quantity_added").notNull(),
   receivedAt: integer("received_at", { mode: "timestamp" }).notNull(),
 });
+
+export const replenishmentOrders = sqliteTable("replenishment_orders", {
+  id: text("id").primaryKey(),
+  number: text("number").notNull().unique(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  status: text("status").notNull().default("en_curso"), // 'en_curso', 'recibido', 'cancelado'
+});
+
+export const replenishmentOrderItems = sqliteTable("replenishment_order_items", {
+  id: text("id").primaryKey(),
+  orderId: text("order_id").notNull().references(() => replenishmentOrders.id),
+  productId: text("product_id").notNull().references(() => products.id),
+  productName: text("product_name").notNull(),
+  quantity: integer("quantity").notNull(),
+});

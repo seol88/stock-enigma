@@ -7,9 +7,18 @@ import { BottomNav } from "../components/layout/bottom-nav/bottom-nav";
 export default component$(() => {
   const loc = useLocation();
   const isLoginPage = loc.url.pathname.startsWith('/login');
+  const isPrintPage = loc.url.pathname.startsWith('/reposicion/pedidos/') && loc.url.pathname !== '/reposicion/pedidos' && loc.url.pathname !== '/reposicion/pedidos/';
 
   if (isLoginPage) {
     return <Slot />;
+  }
+
+  if (isPrintPage) {
+    return (
+      <div class="min-h-screen bg-[#FDFBF7] p-4 md:p-8 print:p-0 print:bg-white">
+        <Slot />
+      </div>
+    );
   }
 
   return (

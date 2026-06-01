@@ -212,21 +212,21 @@ export default component$(() => {
                 <span class="w-3 h-3 rounded-full bg-[#A7F3D0]"></span>
                 <span class="text-gray-600 font-medium">Disponible</span>
               </div>
-              <span class="font-extrabold text-gray-800">{metrics.value.healthyCount} u. ({healthyPct}%)</span>
+              <span class="font-extrabold text-gray-800">{metrics.value.healthyCount} art. ({healthyPct}%)</span>
             </div>
             <div class="flex justify-between items-center text-xs">
               <div class="flex items-center gap-2">
                 <span class="w-3 h-3 rounded-full bg-[#FDE68A]"></span>
                 <span class="text-gray-600 font-medium">Bajo Stock</span>
               </div>
-              <span class="font-extrabold text-gray-800">{metrics.value.lowStockCount} u. ({lowPct}%)</span>
+              <span class="font-extrabold text-gray-800">{metrics.value.lowStockCount} art. ({lowPct}%)</span>
             </div>
             <div class="flex justify-between items-center text-xs">
               <div class="flex items-center gap-2">
                 <span class="w-3 h-3 rounded-full bg-[#FCA5A5]"></span>
                 <span class="text-gray-600 font-medium">Agotado</span>
               </div>
-              <span class="font-extrabold text-gray-800">{metrics.value.outOfStockCount} u. ({outPct}%)</span>
+              <span class="font-extrabold text-gray-800">{metrics.value.outOfStockCount} art. ({outPct}%)</span>
             </div>
           </div>
         </div>

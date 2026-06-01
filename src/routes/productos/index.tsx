@@ -14,15 +14,23 @@ const updateStatus = (stock: number, minStock: number) => {
 export const useProductsLoader = routeLoader$(async (event) => {
   const db = getDb(event.env);
   
+  const url = new URL(event.request.url);
+  const shouldReseed = url.searchParams.get('reseed') === 'true';
+
+  if (shouldReseed) {
+    // Limpiar tabla de productos (incluyendo borrados lógicos)
+    await db.delete(products).run();
+  }
+
   // Consultar todos los productos en general para determinar si hay que hacer seed
   const countAll = await db.select().from(products).all();
 
   if (countAll.length === 0) {
     const seedData = [
-      { id: '1', code: 'EN-7821', name: 'Cuaderno Universitario', category: 'Librería', price: 4500, currentStock: 124, minStock: 15, status: 'active', imageUrl: '/logo.webp' },
-      { id: '2', code: 'EN-4492', name: 'Lapicera Gel Violeta', category: 'Librería', price: 850, currentStock: 12, minStock: 15, status: 'active', imageUrl: '/logo.webp' },
-      { id: '3', code: 'EN-3185', name: 'Cartulina Fluorescente', category: 'Librería', price: 320, currentStock: 0, minStock: 15, status: 'active', imageUrl: '/logo.webp' },
-      { id: '4', code: 'EN-9022', name: 'Taza Personalizada', category: 'Regalería', price: 8200, currentStock: 45, minStock: 15, status: 'active', imageUrl: '/logo.webp' },
+      { id: '1', code: 'EN-7821', name: 'Cuaderno Universitario', category: 'Librería', price: 4500, currentStock: 124, minStock: 15, status: 'active', imageUrl: '/logo.webp', deletedAt: null },
+      { id: '2', code: 'EN-4492', name: 'Lapicera Gel Violeta', category: 'Librería', price: 850, currentStock: 12, minStock: 15, status: 'active', imageUrl: '/logo.webp', deletedAt: null },
+      { id: '3', code: 'EN-3185', name: 'Cartulina Fluorescente', category: 'Librería', price: 320, currentStock: 0, minStock: 15, status: 'active', imageUrl: '/logo.webp', deletedAt: null },
+      { id: '4', code: 'EN-9022', name: 'Taza Personalizada', category: 'Regalería', price: 8200, currentStock: 45, minStock: 15, status: 'active', imageUrl: '/logo.webp', deletedAt: null },
     ];
     for (const item of seedData) {
       await db.insert(products).values(item).run();

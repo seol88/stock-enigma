@@ -11,6 +11,7 @@ export const products = sqliteTable('products', {
   minStock: integer('min_stock').notNull().default(5),
   status: text('status').notNull().default('active'),
   imageUrl: text('image_url'),
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
 });
 
 // Better-Auth Tables

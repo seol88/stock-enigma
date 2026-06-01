@@ -37,24 +37,33 @@ export default component$(() => {
       {/* Estilos CSS de impresión A4 profesionales */}
       <style>{`
         @media print {
-          /* Ocultar barra lateral, cabecera y controles de pantalla */
-          header, sidebar, nav, .btn, .no-print, .breadcrumbs {
+          /* Ocultar elementos estructurales de navegación y controles de pantalla */
+          aside, header, footer, nav, .btn, .no-print, .breadcrumbs, .btm-nav, btm-nav {
             display: none !important;
           }
-          /* Quitar márgenes/bordes del contenedor principal */
-          body, main, #print-remito-document {
-            background: white !important;
-            color: black !important;
-            padding: 0 !important;
+          /* Desestructurar flexbox y scroll del layout principal para que ocupe todo el ancho y sea continuo */
+          .flex, .h-screen, .flex-col, .flex-1, main {
+            display: block !important;
+            height: auto !important;
+            min-height: auto !important;
+            width: 100% !important;
             margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            background: white !important;
             box-shadow: none !important;
             border: none !important;
           }
+          /* Contenedor del remito en modo impresión */
           #print-remito-document {
             display: block !important;
             width: 100% !important;
             max-width: 100% !important;
-            padding: 20mm 15mm !important;
+            padding: 15mm !important;
+            box-shadow: none !important;
+            border: none !important;
+            background: white !important;
+            color: black !important;
           }
         }
         @page {
@@ -89,12 +98,17 @@ export default component$(() => {
       {/* Documento Físico (Remito A4) */}
       <div id="print-remito-document" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 md:p-12 space-y-8 text-black">
         
-        {/* Encabezado Profesional */}
+        {/* Encabezado Profesional con Logo */}
         <div class="flex justify-between items-start border-b border-gray-200 pb-6">
-          <div>
-            <h1 class="text-3xl font-black uppercase tracking-wider text-[#6B21A8] print:text-black">Librería Enigma</h1>
-            <p class="text-xs text-gray-500 font-bold uppercase mt-1">Regalería • Librería • Juguetería</p>
-            <p class="text-xs text-gray-400 mt-0.5">Av. de Prueba 1234, Buenos Aires</p>
+          <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-full overflow-hidden border border-gray-100 bg-white p-1 flex-shrink-0 shadow-sm">
+              <img src="/logo.webp" alt="Logo" class="w-full h-full object-contain" />
+            </div>
+            <div>
+              <h1 class="text-3xl font-black uppercase tracking-wider text-[#6B21A8] print:text-black">Librería Enigma</h1>
+              <p class="text-xs text-gray-500 font-bold uppercase mt-1">Regalería • Librería • Juguetería</p>
+              <p class="text-xs text-gray-400 mt-0.5">Av. de Prueba 1234, Buenos Aires</p>
+            </div>
           </div>
           <div class="text-right space-y-1">
             <span class="inline-block px-3 py-1 bg-purple-50 text-[#6B21A8] border border-purple-200 text-xs font-bold rounded-full uppercase print:hidden">

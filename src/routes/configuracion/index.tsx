@@ -113,7 +113,7 @@ export default component$(() => {
                 placeholder="ejemplo@libreriaenigma.com" 
                 value={newEmail.value}
                 onInput$={(e) => newEmail.value = (e.target as HTMLInputElement).value}
-                class="input input-bordered w-full rounded-xl text-sm border-gray-200 focus:ring-2 focus:ring-[#6B21A8]/20 focus:border-[#6B21A8] focus:outline-none bg-gray-50/50"
+                class="input input-bordered w-full rounded-xl text-sm text-gray-800 placeholder-gray-400 border-gray-200 focus:ring-2 focus:ring-[#6B21A8]/20 focus:border-[#6B21A8] focus:outline-none bg-gray-50/50"
               />
             </div>
             
@@ -155,7 +155,7 @@ export default component$(() => {
                 placeholder="••••••••" 
                 value={currentPassword.value}
                 onInput$={(e) => currentPassword.value = (e.target as HTMLInputElement).value}
-                class="input input-bordered w-full rounded-xl text-sm border-gray-200 focus:ring-2 focus:ring-[#6B21A8]/20 focus:border-[#6B21A8] focus:outline-none bg-gray-50/50"
+                class="input input-bordered w-full rounded-xl text-sm text-gray-800 placeholder-gray-400 border-gray-200 focus:ring-2 focus:ring-[#6B21A8]/20 focus:border-[#6B21A8] focus:outline-none bg-gray-50/50"
               />
             </div>
             
@@ -166,7 +166,7 @@ export default component$(() => {
                 placeholder="Mínimo 6 caracteres" 
                 value={newPassword.value}
                 onInput$={(e) => newPassword.value = (e.target as HTMLInputElement).value}
-                class="input input-bordered w-full rounded-xl text-sm border-gray-200 focus:ring-2 focus:ring-[#6B21A8]/20 focus:border-[#6B21A8] focus:outline-none bg-gray-50/50"
+                class="input input-bordered w-full rounded-xl text-sm text-gray-800 placeholder-gray-400 border-gray-200 focus:ring-2 focus:ring-[#6B21A8]/20 focus:border-[#6B21A8] focus:outline-none bg-gray-50/50"
               />
             </div>
 
@@ -177,7 +177,7 @@ export default component$(() => {
                 placeholder="Repite la nueva contraseña" 
                 value={confirmPassword.value}
                 onInput$={(e) => confirmPassword.value = (e.target as HTMLInputElement).value}
-                class="input input-bordered w-full rounded-xl text-sm border-gray-200 focus:ring-2 focus:ring-[#6B21A8]/20 focus:border-[#6B21A8] focus:outline-none bg-gray-50/50"
+                class="input input-bordered w-full rounded-xl text-sm text-gray-800 placeholder-gray-400 border-gray-200 focus:ring-2 focus:ring-[#6B21A8]/20 focus:border-[#6B21A8] focus:outline-none bg-gray-50/50"
               />
             </div>
             

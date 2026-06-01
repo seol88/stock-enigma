@@ -2,8 +2,27 @@ import { component$ } from '@builder.io/qwik';
 import type { DocumentHead } from '@builder.io/qwik-city';
 import { Link, routeLoader$, routeAction$, zod$, z, Form } from '@builder.io/qwik-city';
 import { getDb } from '../../../../db';
-import { products } from '../../../../db/schema';
+import { products, categories as categoriesTable } from '../../../../db/schema';
 import { eq } from 'drizzle-orm';
+
+// Cargar categorías dinámicas
+export const useCategoriesLoader = routeLoader$(async (event) => {
+  const db = getDb(event.env);
+  let dbCategories = await db.select().from(categoriesTable).all();
+  if (dbCategories.length === 0) {
+    const defaultCats = [
+      { id: '1', name: 'Librería' },
+      { id: '2', name: 'Regalería' },
+      { id: '3', name: 'Juguetería' },
+      { id: '4', name: 'Arte' },
+    ];
+    for (const cat of defaultCats) {
+      await db.insert(categoriesTable).values(cat).run();
+    }
+    dbCategories = await db.select().from(categoriesTable).all();
+  }
+  return dbCategories;
+});
 
 export const useProductLoader = routeLoader$(async (event) => {
   const db = getDb(event.env);
@@ -53,6 +72,7 @@ export const useUpdateProductAction = routeAction$(async (data, event) => {
 
 export default component$(() => {
   const productLoader = useProductLoader();
+  const categoriesLoader = useCategoriesLoader();
   const updateProductAction = useUpdateProductAction();
   const product = productLoader.value;
 
@@ -105,10 +125,9 @@ export default component$(() => {
             <div class="form-control w-full">
               <label class="label"><span class="label-text font-bold text-gray-700">Categoría</span></label>
               <select name="category" value={product.category || 'Librería'} class="select bg-gray-50 border-gray-200 focus:border-[#6B21A8] focus:ring-1 focus:ring-[#6B21A8] rounded-xl text-gray-900">
-                <option value="Librería">Librería</option>
-                <option value="Regalería">Regalería</option>
-                <option value="Juguetería">Juguetería</option>
-                <option value="Arte">Arte</option>
+                {categoriesLoader.value.map((cat) => (
+                  <option key={cat.id} value={cat.name}>{cat.name}</option>
+                ))}
               </select>
             </div>
 

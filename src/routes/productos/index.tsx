@@ -2,7 +2,7 @@ import { component$, useSignal } from '@builder.io/qwik';
 import type { DocumentHead } from '@builder.io/qwik-city';
 import { Link, routeLoader$, routeAction$, zod$, z } from '@builder.io/qwik-city';
 import { getDb } from '../../db';
-import { products } from '../../db/schema';
+import { products, categories as categoriesTable } from '../../db/schema';
 import { eq, isNull } from 'drizzle-orm';
 
 const updateStatus = (stock: number, minStock: number) => {
@@ -11,6 +11,24 @@ const updateStatus = (stock: number, minStock: number) => {
   return 'Disponible';
 };
 
+export const useCategoriesLoader = routeLoader$(async (event) => {
+  const db = getDb(event.env);
+  let dbCategories = await db.select().from(categoriesTable).all();
+  if (dbCategories.length === 0) {
+    const defaultCats = [
+      { id: '1', name: 'Librería' },
+      { id: '2', name: 'Regalería' },
+      { id: '3', name: 'Juguetería' },
+      { id: '4', name: 'Arte' },
+    ];
+    for (const cat of defaultCats) {
+      await db.insert(categoriesTable).values(cat).run();
+    }
+    dbCategories = await db.select().from(categoriesTable).all();
+  }
+  return dbCategories;
+});
+
 export const useProductsLoader = routeLoader$(async (event) => {
   const db = getDb(event.env);
   
@@ -18,8 +36,9 @@ export const useProductsLoader = routeLoader$(async (event) => {
   const shouldReseed = url.searchParams.get('reseed') === 'true';
 
   if (shouldReseed) {
-    // Limpiar tabla de productos (incluyendo borrados lógicos)
+    // Limpiar tablas de productos y categorías para desarrollo
     await db.delete(products).run();
+    await db.delete(categoriesTable).run();
   }
 
   // Consultar todos los productos en general para determinar si hay que hacer seed
@@ -74,10 +93,9 @@ export default component$(() => {
   const searchQuery = useSignal('');
   const activeCategory = useSignal('Todos');
   const productsLoader = useProductsLoader();
+  const categoriesLoader = useCategoriesLoader();
   const updateStockAction = useUpdateStockAction();
   const deleteProductAction = useDeleteProductAction();
-
-  const categories = ['Todos', 'Librería', 'Regalería', 'Juguetería', 'Arte'];
 
   // Filtrado en el cliente basado en la señal reactiva del cargador
   const filteredProducts = productsLoader.value.filter((p) => {
@@ -109,18 +127,35 @@ export default component$(() => {
         </div>
         
         <div class="flex flex-wrap items-center justify-start xl:justify-end gap-2 w-full">
-          {categories.map((cat) => (
+          {/* Botón ABM Categorías */}
+          <Link 
+            href="/productos/categorias/" 
+            class="btn btn-sm bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-[#6B21A8] rounded-full px-3 gap-1 shadow-sm font-medium"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            Categorías
+          </Link>
+
+          {/* Botón Todos */}
+          <button 
+            class={`btn btn-sm rounded-full border-none px-4 font-medium transition-colors ${activeCategory.value === 'Todos' ? 'bg-[#D946EF]/20 text-[#6B21A8]' : 'bg-white text-gray-600 hover:bg-gray-100 shadow-sm'}`}
+            onClick$={() => activeCategory.value = 'Todos'}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline-block align-middle" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+            Todos
+          </button>
+
+          {/* Botones de Categorías de la BD */}
+          {categoriesLoader.value.map((cat) => (
             <button 
-              key={cat}
-              class={`btn btn-sm rounded-full border-none px-4 font-medium transition-colors ${activeCategory.value === cat ? 'bg-[#D946EF]/20 text-[#6B21A8]' : 'bg-white text-gray-600 hover:bg-gray-100 shadow-sm'}`}
-              onClick$={() => activeCategory.value = cat}
+              key={cat.id}
+              class={`btn btn-sm rounded-full border-none px-4 font-medium transition-colors ${activeCategory.value === cat.name ? 'bg-[#D946EF]/20 text-[#6B21A8]' : 'bg-white text-gray-600 hover:bg-gray-100 shadow-sm'}`}
+              onClick$={() => activeCategory.value = cat.name}
             >
-              {cat === 'Todos' && (
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline-block align-middle" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-              )}
-              {cat}
+              {cat.name}
             </button>
           ))}
+
           <div class="w-px h-6 bg-gray-200 mx-1 hidden sm:block"></div>
           <Link href="/productos/nuevo" class="hidden md:flex btn btn-sm bg-[#6B21A8] hover:bg-[#581C87] text-white rounded-full px-4 border-none shadow-sm">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>

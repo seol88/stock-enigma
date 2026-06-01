@@ -60,3 +60,8 @@ export const verification = sqliteTable("verification", {
 	createdAt: integer("createdAt", { mode: "timestamp" }),
 	updatedAt: integer("updatedAt", { mode: "timestamp" })
 });
+
+export const categories = sqliteTable("categories", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+});
